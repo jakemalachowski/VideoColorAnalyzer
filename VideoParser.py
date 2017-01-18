@@ -3,6 +3,7 @@ import subprocess as sp
 import numpy
 from matplotlib import pyplot
 
+
 def getaveragecolor(file):
     im = Image.open(file)
 
@@ -45,18 +46,25 @@ pipe = sp.Popen(command, stdout=sp.PIPE, bufsize=10 ** 8, shell=True)
 i = 0
 while True:
 
-    # read 420*360*3 bytes (= 1 frame)
+    # read 1 frame
     raw_image = pipe.stdout.read(1280*720*3)
 
     if i % 24 == 0:
         # transform the byte read into a numpy array
         image = numpy.fromstring(raw_image, dtype='uint8')
         image = image.reshape((720, 1280, 3))
+        # Setup details to trim the borders of the PyPlot figure
+        fig = pyplot.figure()
+        ax = fig.add_subplot(1, 1, 1)
+
         # convert numpy array to image
-        pyplot.imshow(image, interpolation='nearest')
-        # Save file without borders
         pyplot.axis('off')
-        pyplot.savefig("img" + str(i) + ".png", bbox_inches='tight', pad_inches=0, transparent=True)
+        pyplot.imshow(image, interpolation='nearest')
+        extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+
+        # Save file without borders
+        pyplot.savefig("img" + str(i) + ".png", bbox_inches=extent)
+
         # Get average color of the last saved image
         avgImage = getaveragecolor("img" + str(i) + ".png")
 
