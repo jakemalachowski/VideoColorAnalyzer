@@ -1,6 +1,6 @@
 import getopt
 
-from PIL import Image
+from PIL import Image, ImageDraw
 import subprocess as sp
 import numpy
 from matplotlib import pyplot
@@ -10,6 +10,10 @@ import argparse
 
 def usage():
     print("USAGE: videoparser.py {FILENAME} -f --FRAME {NUMBER OF FRAMES TO SKIP")
+
+
+def clamp(x):
+  return max(0, min(x, 255))
 
 
 def getaveragecolor(file):
@@ -40,21 +44,22 @@ def getaveragecolor(file):
     c2 /= count
     c3 /= count
 
-    return Image.new("RGB", size, (int(c1), int(c2), int(c3)))
-
+    return (int(c1), int(c2), int(c3))
+    # return hex color
+    # return "#{0:02x}{1:02x}{2:02x}".format(clamp(int(c1)), clamp(int(c2)), clamp(int(c3)))
 
 FFMPEG_BIN = "ffmpeg.exe"
 
 parser = argparse.ArgumentParser(description="Analyze the change in colors of videos over time")
-parser.add_argument('-f', "--frames", default=24)
-parser.add_argument('--file', dest="FILENAME", required=True )
+parser.add_argument('-f', "--frames", dest="FRAMESKIPCOUNT", default=24)
+parser.add_argument('--file', dest="FILENAME", required=True)
 args = vars(parser.parse_args())
 
 print(args)
-
+FRAME_SKIP_COUNT = args['FRAMESKIPCOUNT']
 FILENAME = args['FILENAME']
-if args['frames']:
-    FRAME_SKIP_COUNT = int(args['frames'])
+if args['FRAMESKIPCOUNT']:
+    FRAME_SKIP_COUNT = int(args['FRAMESKIPCOUNT'])
 print("Frame skip count", FRAME_SKIP_COUNT)
 
 
@@ -64,7 +69,7 @@ if not my_file.is_file():
 
 command = [FFMPEG_BIN,
            '-i', FILENAME,
-          # '-ss', '00:02:22',
+           '-ss', '00:02:00',
            '-f', 'image2pipe',
            '-pix_fmt', 'rgb24',
            '-vcodec', 'rawvideo', '-']
@@ -72,8 +77,10 @@ command = [FFMPEG_BIN,
 pipe = sp.Popen(command, stdout=sp.PIPE, bufsize=10 ** 8, shell=True)
 print(FRAME_SKIP_COUNT)
 i = 0
-while True:
+finalImage = Image.new("RGB", (1000, 20000))
+finalImageDraw = ImageDraw.Draw(finalImage)
 
+while True:
     # read 1 frame
     raw_image = pipe.stdout.read(1280*720*3)
 
@@ -81,6 +88,7 @@ while True:
         # transform the byte read into a numpy array
         image = numpy.fromstring(raw_image, dtype='uint8')
         if image.size == 0:
+            # Reached the end of the video
             break
         image = image.reshape((720, 1280, 3))
         # Setup details to trim the borders of the PyPlot figure
@@ -97,8 +105,10 @@ while True:
         pyplot.close()
 
         # Get average color of the last saved image
-        avgImage = getaveragecolor("img" + str(i) + ".png")
-
+        avgColor = getaveragecolor("img" + str(i) + ".png")
+        print(avgColor)
+        finalImageDraw.line([(i, 0), (i, 1000)], fill=avgColor)
     # throw away the data in the pipe's buffer.
     pipe.stdout.flush()
     i += 1
+finalImage.save("final_image.png")
