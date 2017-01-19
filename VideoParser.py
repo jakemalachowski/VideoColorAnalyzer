@@ -1,7 +1,6 @@
-from PIL import Image, ImageDraw, ImageColor
+from PIL import Image, ImageDraw
 import subprocess as sp
 import numpy
-from matplotlib import pyplot
 from pathlib import Path
 import argparse
 import AverageColor
@@ -32,7 +31,7 @@ if not my_file.is_file():
 
 command = [FFMPEG_BIN,
            '-i', FILENAME,
-           '-ss', '00:02:00',
+           # '-ss', '00:02:00',
            '-f', 'image2pipe',
            '-pix_fmt', 'rgb24',
            '-vcodec', 'rawvideo', '-']
@@ -54,22 +53,9 @@ while True:
             # Reached the end of the video
             break
         image = image.reshape((720, 1280, 3))
-        # Setup details to trim the borders of the PyPlot figure
-        fig = pyplot.figure()
-        ax = fig.add_subplot(1, 1, 1)
+        img = Image.fromarray(image, 'RGB')
 
-        # convert numpy array to image
-        pyplot.axis('off')
-        pyplot.imshow(image, interpolation='nearest')
-        extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-
-        # Save file without borders
-        pyplot.savefig("frame" + str(i) + ".png", bbox_inches=extent)
-        pyplot.close()
-
-        # Get average color of the last saved image
-        avgColor = AverageColor.averagecolorfromfile("frame" + str(i) + ".png")
-        color = ImageColor
+        avgColor = AverageColor.averagecolorfromimage(img)
         finalImageDraw.line([(pos, 0), (pos, 1000)], fill="rgb" + str(avgColor))
         pos += 1
     # throw away the data in the pipe's buffer.
