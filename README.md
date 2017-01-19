@@ -1,4 +1,4 @@
-# VideoColorAnalyzer
+# Video Color Analyzer
 <h3> A tool to visualize the change in color over time </h3>
 
 <h5>Instructions to run:</h5>
