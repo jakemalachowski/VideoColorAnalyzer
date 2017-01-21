@@ -35,7 +35,6 @@ def get_resolution(path):
     out = subprocess.check_output([FFPROBE_BIN, "-v", "error", "-of", "flat=s=_",
         "-select_streams", "v:0", "-show_entries", "stream=height,width", path])
 
-    print(out)
     lines = out.split(b'\n')
     width = lines[0].split(b'=')[1]
     height = lines[1].split(b'=')[1]
