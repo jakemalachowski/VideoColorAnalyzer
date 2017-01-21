@@ -1,5 +1,10 @@
+import logging
 import numpy
 from PIL import Image
+
+logging.basicConfig(
+        format="[%(asctime)s %(name)s %(levelname)s] %(message)s",
+        level=logging.INFO)
 
 
 # To save processing time, you can choose to downsize each frame before

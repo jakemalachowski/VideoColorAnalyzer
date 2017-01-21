@@ -9,12 +9,13 @@ import videoparser
 
 from PIL import Image, ImageDraw
 
-logging.basicConfig(format="[%(asctime)s %(name)s %(levelname)s] %(message)s")
-logging.getLogger(__name__).setLevel(logging.INFO)
+logging.basicConfig(
+        format="[%(asctime)s %(name)s %(levelname)s] %(message)s",
+        level=logging.INFO)
 
 
 def usage():
-    print("usage: videoparser.py video_file output.png")
+    print("usage: main.py video_file output.png")
 
 
 if len(sys.argv) != 3:
@@ -24,19 +25,20 @@ if len(sys.argv) != 3:
 video = videoparser.Video(sys.argv[1])
 out_path = sys.argv[2]
 
-out_width = 1920
-out_height = 1080
+# Declare a blank image and prepare it for drawing
+out_image = Image.new("RGB", (1920, 1080))
+out_image_draw = ImageDraw.Draw(out_image, "RGB")
 out_frame = 0
 
-# Number of frames to skip to ensure we only sample $out_width frames, so that
-# we create the ideal image and don't need to resize it later.
-frame_skip = int(video.total_frames / float(out_width))
-
-# Declare a blank image and prepare it for drawing
-out_image = Image.new("RGB", (out_width, out_height))
-out_image_draw = ImageDraw.Draw(out_image, "RGB")
-
-last_frame = None
+# Because the output image is of a fixed size that we know ahead of time, an
+# excellent way of saving on processing time is to only process out_image.width
+# number of frames. Because we have a single vertical line of colour for each
+# pixel in the width of the output image, we only need to analyse that many
+# frames in the input video.
+#
+# This calculation tells out loop below how many frames to skip between frames
+# to actually process.
+frame_skip = int(video.total_frames / float(out_image.width))
 
 widgets = [
     progressbar.Percentage(), ' ',
@@ -53,13 +55,9 @@ with progressbar.ProgressBar(max_value=video.total_frames, widgets=widgets) as b
         if frame.number % frame_skip != 0:
             continue
 
-        out_image_draw.line([(out_frame, 0), (out_frame, out_height)], fill="rgb" +
-                str(frame.average_color()))
+        out_image_draw.line([(out_frame, 0), (out_frame, out_image.height)],
+                fill="rgb" + str(frame.average_color()))
         out_frame += 1
-
-        if last_frame == None:
-            last_frame = frame
-            continue
 
         bar.update(frame.number)
 

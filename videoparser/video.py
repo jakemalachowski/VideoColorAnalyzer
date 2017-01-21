@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 import os
 import logging
 import subprocess
@@ -10,29 +12,32 @@ FFMPEG_BIN = "ffmpeg"
 FFPROBE_BIN = "ffprobe"
 FNULL = open(os.devnull, 'w')
 
-logging.basicConfig(format="[%(asctime)s %(name)s %(levelname)s] %(message)s")
-logging.getLogger(__name__).setLevel(logging.INFO)
+logging.basicConfig(
+        format="[%(asctime)s %(name)s %(levelname)s] %(message)s",
+        level=logging.INFO)
 
 
 class Video(object):
     def __init__(self, path):
         self.path = path
 
-        logging.info("determining video resolution...")
-        self.width, self.height = self._resolution(self.path)
+        pool = ThreadPoolExecutor(5)
+
+        resolution_future = pool.submit(self._resolution, self.path)
+        total_frames_future = pool.submit(self._total_frames, self.path)
+        frame_rate_future = pool.submit(self._frame_rate, self.path)
+
+        self.width, self.height = resolution_future.result()
         logging.info("video resolution is: %dx%d" % (self.width, self.height))
 
         self.bytes_per_frame = self.width * self.height * 3
 
-        logging.info("counting frames...")
-        self.total_frames = self._total_frames(self.path)
+        self.total_frames = total_frames_future.result()
         logging.info("total frames in video: %d" % self.total_frames)
 
-        logging.info("determining framerate...")
-        self.frame_rate = self._frame_rate(self.path)
+        self.frame_rate = frame_rate_future.result()
         logging.info("frame rate: %.2f" % self.frame_rate)
 
-        logging.info("opening video stream...")
         self.proc = self._spawn(self.path)
         logging.info("video stream opened")
 
