@@ -9,10 +9,6 @@ import videoparser
 
 from PIL import Image, ImageDraw
 
-logging.basicConfig(
-        format="[%(asctime)s %(name)s %(levelname)s] %(message)s",
-        level=logging.INFO)
-
 
 def usage():
     print("usage: main.py video_file output.png")
@@ -38,7 +34,7 @@ out_frame = 0
 #
 # This calculation tells out loop below how many frames to skip between frames
 # to actually process.
-frame_skip = int(video.total_frames / float(out_image.width))
+frame_skip = int(video.estimated_total_frames / float(out_image.width))
 
 widgets = [
     progressbar.Percentage(), ' ',
@@ -47,9 +43,14 @@ widgets = [
     progressbar.ETA()
 ]
 
-with progressbar.ProgressBar(max_value=video.total_frames, widgets=widgets) as bar:
-    while video.has_next_frame():
+bar = progressbar.ProgressBar(max_value=video.estimated_total_frames,
+        widgets=widgets)
+
+with bar:
+    while True:
         frame = video.next_frame()
+        if frame == None:
+            break
 
         # Skip frames according to the given sample rate.
         if frame.number % frame_skip != 0:
