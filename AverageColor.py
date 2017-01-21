@@ -11,8 +11,8 @@ def averagecolorfromfile(file):
 
     im = Image.open(file)
 
-    # create list of pixel's RGB values and their count (stored in color[0])
-    colors = im.getcolors(1000000)
+    # create list of pixel's RGB values and their count (count stored in color[0])
+    colors = im.getcolors(10000000)
 
     im.close()
 
