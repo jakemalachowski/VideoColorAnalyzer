@@ -12,7 +12,6 @@
 
 
 <h3>An example of The Dark Knight</h3>
-![The Dark Knight Example](/VideoColorAnalyzer/examples/The Dark Knight.colors.png)
 <img src="examples/The Dark Knight.colors.png"/>
 <h3>An example of The Dark Knight Rises</h3>
-![The Dark Knight Rises Example](/VideoColorAnalyzer/examples/The Dark Knight Rises.avi.colors.png)
+<img src="examples/The Dark Knight Rises.avi.colors.png"/>
