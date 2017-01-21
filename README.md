@@ -10,8 +10,8 @@
 
 <p><b>Skip Count</b> <i>Optional</i>  The number of frames to skip in between sampling for the average color.  A smaller number will have more detail but will take longer to process. The default is every 24th frame.</p> 
 
-<p>You must have FFMPEG installed to run this program.</p>
+<p>You must have FFMPEG (https://ffmpeg.org/) installed to run this program.</p>
 
 
 <h3>An example of The Dark Knight</h3>
-![ScreenShot](http://imgur.com/a/yyvY5)
+![The Dark Knight Example](/Dark Knight Analyzed.png)
