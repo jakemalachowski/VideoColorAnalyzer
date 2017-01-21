@@ -14,4 +14,7 @@
 
 
 <h3>An example of The Dark Knight</h3>
-![The Dark Knight Example](/Dark Knight Analyzed.png)
+![The Dark Knight Example](/examples/The Dark Knight.colors)
+
+<h3>An example of The Dark Knight Rises</h3>
+![The Dark Knight Rises Example](/examples/The Dark Knight Rises.avi.colors)
