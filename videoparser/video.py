@@ -1,7 +1,6 @@
-from concurrent.futures import ThreadPoolExecutor
-
-import os
+import json
 import logging
+import os
 import subprocess
 
 from PIL import Image
@@ -9,93 +8,99 @@ from PIL import Image
 from frame import Frame
 
 
-FFMPEG_BIN = "ffmpeg"
-FFPROBE_BIN = "ffprobe"
-FNULL = open(os.devnull, 'w')
-
 
 class UnknownCodecError(Exception):
     pass
 
 
 class Video(object):
-    def __init__(self, path):
+    # Number of frames to buffer when reading in the raw video from ffmpeg over
+    # a pipe.
+    BUFFER_NFRAMES = 300
+
+    # What format each pixel should have in the frames we get back from ffmpeg.
+    PIX_FMT = "rgb24"
+
+    FFMPEG_BIN = "ffmpeg"
+    FFPROBE_BIN = "ffprobe"
+    FNULL = open(os.devnull, 'w')
+
+    def __init__(self, path, frames_wanted=None, downscale=None):
         self.path = path
 
-        self.codec = self._codec(self.path)
+        self.frames_wanted = frames_wanted or self.total_frames
+        self.frames_given = 0
+
+        self.downscale = downscale or 1
+
+        self._get_info()
+
         if self.codec == "unknown":
             raise UnknownCodecError("can't parse video, unkown codec")
 
-        pool = ThreadPoolExecutor(5)
-
-        resolution_future = pool.submit(self._resolution, self.path)
-        duration_future = pool.submit(self._duration, self.path)
-        frame_rate_future = pool.submit(self._frame_rate, self.path)
-
-        self.width, self.height = resolution_future.result()
-        logging.info("video resolution is: %dx%d" % (self.width, self.height))
-
-        self.bytes_per_frame = self.width * self.height * 3
-
-        self.frame_rate = frame_rate_future.result()
-        logging.info("frame rate: %.2f" % self.frame_rate)
-
-        self.duration = duration_future.result()
-
-        self.estimated_total_frames = int(self.duration * self.frame_rate)
-        logging.info("total frames in video: %d" % self.estimated_total_frames)
-
-        self.proc = self._spawn(self.path)
-        logging.info("video stream opened")
-
-        self.current_frame = 0
+        self.proc = self._spawn()
 
     def next_frame(self):
-        self.current_frame += 1
+        # We can only give a positive integer for frame skipping, which means
+        # we'll more frames than was asked for. This check is to avoid returning
+        # those frames.
+        #
+        # Given how we calculate this, the number of frames we miss should be no
+        # more than the framestep value we pass to ffmpeg later on.
+        if self.frames_wanted and self.frames_given >= self.frames_wanted:
+            return None
+
         data = self.proc.stdout.read(self.bytes_per_frame)
 
         if len(data) != self.bytes_per_frame:
             return None
 
-        return Frame(data, self.width, self.height, self.current_frame)
+        self.frames_given += 1
+        return Frame(data, self.out_width, self.out_height)
 
-    def has_next_frame(self):
-        return self.current_frame <= self.estimated_total_frames
+    def _get_info(self):
+        out = subprocess.check_output([self.FFPROBE_BIN, "-v", "error", "-of",
+            "json", "-select_streams", "v:0", "-show_entries", "stream",
+            self.path])
 
-    def _resolution(self, path):
-        out = subprocess.check_output([FFPROBE_BIN, "-v", "error", "-of",
-            "flat=s=_", "-select_streams", "v:0", "-show_entries",
-            "stream=height,width", path])
+        info = json.loads(out)
+        stream = info['streams'][0]
 
-        lines = out.split("\n")
-        width = lines[0].split('=')[1]
-        height = lines[1].split('=')[1]
-        return (int(width), int(height))
+        self.width = int(stream['width'])
+        self.height = int(stream['height'])
+        self.codec = stream['codec_name']
+        self.duration = float(stream['duration'])
 
-    def _duration(self, path):
-        out = subprocess.check_output([FFPROBE_BIN, "-i", path, "-show_entries",
-           "format=duration", "-v", "error", "-of", "csv=p=0"])
+        self.out_width = self.width / self.downscale
+        self.out_height = self.height / self.downscale
 
-        return float(out)
+        fr = stream['r_frame_rate']
+        a, b = fr.split('/')
+        self.frame_rate = float(a) / float(b)
 
-    def _frame_rate(self, path):
-        out = subprocess.check_output([FFPROBE_BIN, "-v", "0", "-of",
-            "compact=p=0", "-select_streams", "0", "-show_entries",
-            "stream=r_frame_rate", path])
-        n, d = out.split("=")[1].split("/")
-        return float(n) / float(d)
+        afr = stream['avg_frame_rate']
+        c, d = fr.split('/')
+        self.avg_frame_rate = float(c) / float(d)
 
-    def _codec(self, path):
-        out = subprocess.check_output([FFPROBE_BIN, "-v", "error",
-            "-select_streams", "v:0", "-show_entries", "stream=codec_name",
-            "-of", "default=noprint_wrappers=1:nokey=1", path])
+        self.total_frames = int(stream['nb_frames'])
 
-        return out.strip()
+        # This relies on us using a pixel format of rgb24 in the ffmpeg command.
+        # If that changes, the 3 in this equation may be wrong.
+        self.bytes_per_frame = self.out_width * self.out_height * 3
 
-    def _spawn(self, path):
-        command = [FFMPEG_BIN, '-i', path, '-f', 'image2pipe', '-pix_fmt',
-                'rgb24', '-vcodec', 'rawvideo', '-']
 
-        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=FNULL,
-                bufsize=self.bytes_per_frame * 300)
+    def _spawn(self):
+        step = int(float(self.total_frames) / float(self.frames_wanted))
+
+        opts = ['-i', self.path,
+                '-f', 'image2pipe',
+                '-pix_fmt', self.PIX_FMT,
+                '-vcodec', 'rawvideo',
+                '-vf', 'framestep=step=%d,scale=iw/%d:-1' % (step,
+                    self.downscale)]
+
+        command = [self.FFMPEG_BIN] + opts + ['-']
+        return subprocess.Popen(command, stdout=subprocess.PIPE,
+                stderr=self.FNULL, bufsize=self.bytes_per_frame *
+                self.BUFFER_NFRAMES)
 
