@@ -1,5 +1,4 @@
-from videoparser.frame import Frame
-from videoparser.video import Video
+from . import video, frame
 
 Video = video.Video
 Frame = frame.Frame
