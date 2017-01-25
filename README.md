@@ -1,17 +1,19 @@
 # Video Color Analyzer
-<h3> A tool to visualize the change in color over time </h3>
 
-<h5>Instructions to run:</h5>
+A tool for analysing the average color throughout a video file.
 
-<p>After cloning the repository, navigate to the directory in the command line, then run the following:</p>
-<p>python VideoParser.py {path}</p>
+## Requirements
 
-<p><b>Path</b> A path to the video file that you want to process.</p>
+Programs: `ffmpeg`, `ffprobe`
 
-<p>You must have FFMPEG (https://ffmpeg.org/) installed to run this program.</p>
+Python packages: `pillow`, `progressbar2`
 
+## Usage
 
-<h3>An example of The Dark Knight</h3>
-<img src="examples/The Dark Knight.colors.png"/>
-<h3>An example of The Dark Knight Rises</h3>
-<img src="examples/The Dark Knight Rises.avi.colors.png"/>
+    $ python main.py video.mp4 out.png
+
+## Example output
+
+### The Dark Knight
+
+![The Dark Knight Example](/Dark Knight Analyzed.png)
