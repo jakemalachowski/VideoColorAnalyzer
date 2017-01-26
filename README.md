@@ -16,4 +16,8 @@ Python packages: `pillow`, `progressbar2`
 
 ### The Dark Knight
 
-![The Dark Knight Example](/Dark Knight Analyzed.png)
+![The Dark Knight Example](examples/The Dark Knight.colors.png)
+
+### The Dark Knight Rises
+
+![The Dark Knight Rises Example](examples/The Dark Knight Rises.avi.colors.png)
