@@ -1,10 +1,5 @@
-import logging
-import numpy
-import os
 import progressbar
 import sys
-import subprocess
-import time
 import videoparser
 
 from PIL import Image, ImageDraw

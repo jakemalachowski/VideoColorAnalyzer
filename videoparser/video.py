@@ -1,12 +1,8 @@
 import json
-import logging
 import os
 import subprocess
 
-from PIL import Image
-
-from frame import Frame
-
+from .frame import Frame
 
 
 class UnknownCodecError(Exception):
@@ -71,8 +67,8 @@ class Video(object):
         self.codec = stream['codec_name']
         self.duration = float(stream['duration'])
 
-        self.out_width = self.width / self.downscale
-        self.out_height = self.height / self.downscale
+        self.out_width = self.width // self.downscale
+        self.out_height = self.height // self.downscale
 
         fr = stream['r_frame_rate']
         a, b = fr.split('/')
@@ -87,7 +83,6 @@ class Video(object):
         # This relies on us using a pixel format of rgb24 in the ffmpeg command.
         # If that changes, the 3 in this equation may be wrong.
         self.bytes_per_frame = self.out_width * self.out_height * 3
-
 
     def _spawn(self):
         step = int(float(self.total_frames) / float(self.frames_wanted))
