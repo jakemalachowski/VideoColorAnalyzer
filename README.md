@@ -16,4 +16,4 @@ Python packages: `pillow`, `progressbar2`
 
 ### The Dark Knight
 
-![The Dark Knight Example](/Dark Knight Analyzed.png)
+[The Dark Knight Example](examples/Dark Knight Analyzed.png)
